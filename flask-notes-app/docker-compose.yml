@@ -1,0 +1,50 @@
+services:
+  flask_app:
+    build:
+      context: .
+    container_name: "flask_cont"
+    ports:
+      - "5000:5000"
+    env_file:
+      - ".env"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    networks:
+      - notes-app-nw
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: "nginx_cont"
+    ports:
+      - "80:80"
+    restart: always
+    depends_on:
+      - flask_app
+    networks:
+      - notes-app-nw
+
+  db:
+    image: mysql:8.0
+    container_name: "db_cont"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=notes_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - notes-app-nw
+
+networks:
+  notes-app-nw:
+
+volumes:
+  mysql-data:
